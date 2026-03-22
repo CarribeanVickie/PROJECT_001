@@ -1,0 +1,9 @@
+CREATE TABLE IF NOT EXISTS "TeamPermission" (
+  "teamId" TEXT NOT NULL PRIMARY KEY,
+  "adminCanAllocateRoles" INTEGER NOT NULL DEFAULT 0,
+  "adminCanAllocateMembers" INTEGER NOT NULL DEFAULT 0,
+  "updatedAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "TeamPermission_teamId_fkey" FOREIGN KEY ("teamId") REFERENCES "Team" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+INSERT OR IGNORE INTO "TeamPermission" ("teamId") VALUES ('team_123');

@@ -1,0 +1,31 @@
+# fly.toml app configuration file generated for rhema-lightwave-media-app on 2026-03-20T21:55:44+03:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'rhema-lightwave-media-app'
+primary_region = 'jnb'
+
+[build]
+
+[env]
+  DATABASE_URL = 'file:/data/dev.db'
+  PORT = '4000'
+  UPLOADS_DIR = '/data/uploads'
+
+[[mounts]]
+  source = 'data'
+  destination = '/data'
+
+[http_service]
+  internal_port = 4000
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 1
+  processes = ['app']
+
+[[vm]]
+  memory = '1gb'
+  cpus = 1
+  memory_mb = 1024
