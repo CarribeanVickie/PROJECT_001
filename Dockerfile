@@ -20,7 +20,8 @@ FROM node:lts-slim
 WORKDIR /app
 
 ENV NODE_ENV=production
-ENV PORT=4000
+# DO NOT hardcode PORT, use the one from Render
+ENV PORT=$PORT
 
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
@@ -33,6 +34,7 @@ COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dbsetup.js ./dbsetup.js
 
-EXPOSE 4000
+EXPOSE 8080
 
-CMD ["node", "dbsetup.js", "node", "dist/middleware/server.js"]
+# Run dbsetup first, then start server
+CMD ["sh", "-c", "node dbsetup.js && node dist/middleware/server.js"]
