@@ -41,7 +41,8 @@ function normalizeVisibility(value: unknown) {
 
 async function getUserRowById(userId: string) {
   const rows = await prisma.$queryRawUnsafe<UserRow[]>(
-    'SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt" ' +
+    'SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", ' +
+    '"identityVisibility", "passwordHash", "role", "createdAt", "updatedAt" ' +
     'FROM "User" ' +
     'WHERE "id" = $1 ' +
     'LIMIT 1',
@@ -143,6 +144,7 @@ export async function createUser(req: Request, res: Response, next: NextFunction
       return res.status(400).json({ error: 'Password must be at least 6 characters long' });
     }
 
+    // Ensure team exists
     await prisma.team.upsert({
       where: { id: teamId },
       update: {},
@@ -150,13 +152,20 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     });
 
     const userId = randomUUID();
-    await prisma.$executeRawUnsafe(`
-      INSERT INTO "User"
-        ("id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", 
-        "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, 
-      userId, teamId, String(name).trim(), String(email).trim().toLowerCase(),
-      null, null, 'NAME', hashPassword(String(password)), DEFAULT_USER_ROLE
+    await prisma.$executeRawUnsafe(
+      'INSERT INTO "User" ' +
+      '("id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", ' +
+      '"identityVisibility", "passwordHash", "role", "createdAt", "updatedAt") ' +
+      'VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)',
+      userId,
+      teamId,
+      String(name).trim(),
+      String(email).trim().toLowerCase(),
+      null,
+      null,
+      'NAME',
+      hashPassword(String(password)),
+      DEFAULT_USER_ROLE
     );
 
     const user = await getUserRowById(userId);
@@ -241,6 +250,7 @@ export async function signInUser(req: Request, res: Response, next: NextFunction
     }
 
     const emailLookup = identifier.toLowerCase();
+    // Use the email query first, fallback to ID lookup
     const user = (await getUserRowByEmail(emailLookup)) || (await getUserRowById(identifier));
 
     if (!user || !user.passwordHash || !verifyPassword(password, user.passwordHash)) {
@@ -281,12 +291,13 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
       return res.status(400).json({ error: 'teamId query param is required' });
     }
 
-    const users = await prisma.$queryRawUnsafe<UserRow[]>(`
-      SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
-            "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
-      FROM "User"
-      WHERE "teamId" = $1
-      ORDER BY "name" ASC`, teamId
+    const users = await prisma.$queryRawUnsafe<UserRow[]>(
+      'SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", ' +
+      '"identityVisibility", "passwordHash", "role", "createdAt", "updatedAt" ' +
+      'FROM "User" ' +
+      'WHERE "teamId" = $1 ' +
+      'ORDER BY "name" ASC',
+      teamId
     );
 
     res.json(await augmentUsersWithRoles(users));
@@ -338,23 +349,28 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
 export async function updateUserProfile(req: Request, res: Response, next: NextFunction) {
   try {
     const userId = await ensureOwnUser(req);
+
     const emailInput = typeof req.body.email === 'string' ? req.body.email.trim().toLowerCase() : '';
     const phoneNumber = typeof req.body.phoneNumber === 'string' ? req.body.phoneNumber.trim() : '';
     const profilePhotoUrl = typeof req.body.profilePhotoUrl === 'string' ? req.body.profilePhotoUrl.trim() : '';
     const identityVisibility = normalizeVisibility(req.body.identityVisibility);
 
     const currentUser = await getUserRowById(userId);
-    if (!currentUser) {
-      return res.status(404).json({ error: 'User not found' });
-    }
+    if (!currentUser) return res.status(404).json({ error: 'User not found' });
 
-    const nextEmail = emailInput || (isPlaceholderEmail(currentUser.email) ? createPlaceholderEmail(userId) : currentUser.email);
+    const nextEmail =
+      emailInput || (isPlaceholderEmail(currentUser.email) ? createPlaceholderEmail(userId) : currentUser.email);
 
-    await prisma.$executeRawUnsafe(`
-      UPDATE "User"
-      SET "email" = $1, "phoneNumber" = $2, "profilePhotoUrl" = $3,
-          "identityVisibility" = $4, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = $5`, nextEmail, phoneNumber ?? null, profilePhotoUrl ?? null, identityVisibility, userId
+    await prisma.$executeRawUnsafe(
+      'UPDATE "User" ' +
+      'SET "email" = $1, "phoneNumber" = $2, "profilePhotoUrl" = $3, ' +
+      '"identityVisibility" = $4, "updatedAt" = CURRENT_TIMESTAMP ' +
+      'WHERE "id" = $5',
+      nextEmail,
+      phoneNumber ?? null,
+      profilePhotoUrl ?? null,
+      identityVisibility,
+      userId
     );
 
     const updatedUser = await getUserRowById(userId);
@@ -370,16 +386,16 @@ export async function uploadUserProfilePhoto(req: Request, res: Response, next: 
     const imageBase64 = String(req.body.imageBase64 || '').trim();
     const mimeType = String(req.body.mimeType || 'image/jpeg').trim();
 
-    if (!imageBase64) {
-      return res.status(400).json({ error: 'imageBase64 is required' });
-    }
+    if (!imageBase64) return res.status(400).json({ error: 'imageBase64 is required' });
 
     const profilePhotoUrl = saveBase64ProfilePhoto(userId, imageBase64, mimeType);
 
-    await prisma.$executeRawUnsafe(`
-      UPDATE "User"
-      SET "profilePhotoUrl" = $1, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = $2`, profilePhotoUrl, userId
+    await prisma.$executeRawUnsafe(
+      'UPDATE "User" ' +
+      'SET "profilePhotoUrl" = $1, "updatedAt" = CURRENT_TIMESTAMP ' +
+      'WHERE "id" = $2',
+      profilePhotoUrl,
+      userId
     );
 
     const updatedUser = await getUserRowById(userId);
