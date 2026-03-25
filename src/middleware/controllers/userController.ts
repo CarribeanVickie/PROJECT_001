@@ -40,24 +40,24 @@ function normalizeVisibility(value: unknown) {
 }
 
 async function getUserRowById(userId: string) {
-  const rows = await prisma.$queryRawUnsafe<UserRow[]>(`
-    SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
-           "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
-    FROM "User"
-    WHERE "id" = $1
-    LIMIT 1
-  `, userId);
+  const rows = await prisma.$queryRawUnsafe<UserRow[]>(
+    'SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt" ' +
+    'FROM "User" ' +
+    'WHERE "id" = $1 ' +
+    'LIMIT 1',
+    userId
+  );
   return rows[0] || null;
 }
 
 async function getUserRowByEmail(email: string) {
-  const rows = await prisma.$queryRawUnsafe<UserRow[]>(`
-    SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
-           "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
-    FROM "User"
-    WHERE "email" = $1
-    LIMIT 1
-  `, email);
+  const rows = await prisma.$queryRawUnsafe<UserRow[]>(
+    'SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt" ' +
+    'FROM "User" ' +
+    'WHERE "email" = $1 ' +
+    'LIMIT 1',
+    email
+  );
   return rows[0] || null;
 }
 
