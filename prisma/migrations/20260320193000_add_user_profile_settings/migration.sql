@@ -1,3 +1,0 @@
-ALTER TABLE "User" ADD COLUMN "phoneNumber" TEXT;
-ALTER TABLE "User" ADD COLUMN "profilePhotoUrl" TEXT;
-ALTER TABLE "User" ADD COLUMN "identityVisibility" TEXT NOT NULL DEFAULT 'NAME';
