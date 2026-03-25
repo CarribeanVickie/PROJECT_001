@@ -248,7 +248,7 @@ export async function addUserToMinistryTeam(ministryTeamId: string, userId: stri
 
 export async function getTeamPermissions(teamId: string) {
   const rows = await prisma.$queryRawUnsafe<TeamPermissionRow[]>(
-    'SELECT teamId, adminCanAllocateRoles, adminCanAllocateMembers FROM "TeamPermission" WHERE teamId = ?',
+    'SELECT "teamId", "adminCanAllocateRoles", "adminCanAllocateMembers" FROM "TeamPermission" WHERE "teamId" = $1',
     teamId,
   );
 
