@@ -9,7 +9,9 @@
     "start": "node dist/middleware/server.js",
     "db:migrate": "prisma migrate deploy",
     "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev --name init"
+    "prisma:migrate": "prisma migrate dev --name init",
+    "postinstall": "prisma generate",
+    "migrate": "prisma migrate deploy"
   },
   "keywords": [],
   "author": "",
