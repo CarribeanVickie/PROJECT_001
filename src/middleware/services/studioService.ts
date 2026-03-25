@@ -48,7 +48,7 @@ type TeamPermissionRow = {
 
 export async function listUserAdditionalRoles(userId: string) {
   const rows = await prisma.$queryRawUnsafe<AdditionalRoleRow[]>(
-    'SELECT role FROM "UserAdditionalRole" WHERE userId = ? ORDER BY role ASC',
+    'SELECT "role" FROM "UserAdditionalRole" WHERE "userId" = $1 ORDER BY "role" ASC',
     userId,
   );
 

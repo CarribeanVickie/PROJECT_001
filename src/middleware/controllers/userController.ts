@@ -257,7 +257,7 @@ export async function signInUser(req: Request, res: Response, next: NextFunction
       return res.status(401).json({ error: 'Invalid user ID/email or password' });
     }
 
-    res.json(user);
+    res.json(await augmentUserWithRoles(user));
   } catch (err) {
     next(err);
   }
