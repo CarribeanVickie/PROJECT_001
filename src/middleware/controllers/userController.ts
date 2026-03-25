@@ -40,30 +40,24 @@ function normalizeVisibility(value: unknown) {
 }
 
 async function getUserRowById(userId: string) {
-  const rows = await prisma.$queryRawUnsafe<UserRow[]>(
-    `
+  const rows = await prisma.$queryRawUnsafe<UserRow[]>(`
     SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
            "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
     FROM "User"
     WHERE "id" = $1
     LIMIT 1
-    `,
-    userId
-  );
+  `, userId);
   return rows[0] || null;
 }
 
 async function getUserRowByEmail(email: string) {
-  const rows = await prisma.$queryRawUnsafe<UserRow[]>(
-    `
+  const rows = await prisma.$queryRawUnsafe<UserRow[]>(`
     SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
            "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
     FROM "User"
     WHERE "email" = $1
     LIMIT 1
-    `,
-    email
-  );
+  `, email);
   return rows[0] || null;
 }
 
@@ -156,22 +150,13 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     });
 
     const userId = randomUUID();
-    await prisma.$executeRawUnsafe(
-      `
-      INSERT INTO "User" 
+    await prisma.$executeRawUnsafe(`
+      INSERT INTO "User"
         ("id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", 
-         "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `,
-      userId,
-      teamId,
-      String(name).trim(),
-      String(email).trim().toLowerCase(),
-      null,
-      null,
-      'NAME',
-      hashPassword(String(password)),
-      DEFAULT_USER_ROLE
+        "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, 
+      userId, teamId, String(name).trim(), String(email).trim().toLowerCase(),
+      null, null, 'NAME', hashPassword(String(password)), DEFAULT_USER_ROLE
     );
 
     const user = await getUserRowById(userId);
@@ -198,21 +183,13 @@ export async function createManagedUser(req: Request, res: Response, next: NextF
     const userId = randomUUID();
     const temporaryPassword = generateTemporaryPassword();
 
-    await prisma.$executeRawUnsafe(
-      `
+    await prisma.$executeRawUnsafe(`
       INSERT INTO "User"
-        (id, "teamId", name, email, "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", role, "createdAt", "updatedAt")
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `,
-      userId,
-      actor.teamId,
-      name,
-      createPlaceholderEmail(userId),
-      null,
-      null,
-      'NAME',
-      hashPassword(temporaryPassword),
-      role
+        ("id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
+        "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)`, 
+      userId, actor.teamId, name, createPlaceholderEmail(userId),
+      null, null, 'NAME', hashPassword(temporaryPassword), role
     );
 
     const user = await getUserRowById(userId);
@@ -241,14 +218,11 @@ export async function resetManagedUserPassword(req: Request, res: Response, next
 
     const temporaryPassword = generateTemporaryPassword();
 
-    await prisma.$executeRawUnsafe(
-      `
+    await prisma.$executeRawUnsafe(`
       UPDATE "User"
       SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE "id" = $2
-      `,
-      hashPassword(temporaryPassword),
-      userId
+      WHERE "id" = $2`, 
+      hashPassword(temporaryPassword), userId
     );
 
     res.json({ userId, temporaryPassword });
@@ -307,15 +281,12 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
       return res.status(400).json({ error: 'teamId query param is required' });
     }
 
-    const users = await prisma.$queryRawUnsafe<UserRow[]>(
-      `
+    const users = await prisma.$queryRawUnsafe<UserRow[]>(`
       SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
-             "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
+            "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
       FROM "User"
       WHERE "teamId" = $1
-      ORDER BY "name" ASC
-      `,
-      teamId
+      ORDER BY "name" ASC`, teamId
     );
 
     res.json(await augmentUsersWithRoles(users));
@@ -379,17 +350,11 @@ export async function updateUserProfile(req: Request, res: Response, next: NextF
 
     const nextEmail = emailInput || (isPlaceholderEmail(currentUser.email) ? createPlaceholderEmail(userId) : currentUser.email);
 
-    await prisma.$executeRawUnsafe(
-      `
+    await prisma.$executeRawUnsafe(`
       UPDATE "User"
-      SET email = $1, "phoneNumber" = $2, "profilePhotoUrl" = $3, "identityVisibility" = $4, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE id = $5
-      `,
-      nextEmail,
-      phoneNumber ?? null,
-      profilePhotoUrl ?? null,
-      identityVisibility,
-      userId
+      SET "email" = $1, "phoneNumber" = $2, "profilePhotoUrl" = $3,
+          "identityVisibility" = $4, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = $5`, nextEmail, phoneNumber ?? null, profilePhotoUrl ?? null, identityVisibility, userId
     );
 
     const updatedUser = await getUserRowById(userId);
@@ -411,14 +376,10 @@ export async function uploadUserProfilePhoto(req: Request, res: Response, next: 
 
     const profilePhotoUrl = saveBase64ProfilePhoto(userId, imageBase64, mimeType);
 
-    await prisma.$executeRawUnsafe(
-      `
-        UPDATE "User"
-        SET profile_photo_url = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
-      `,
-      profilePhotoUrl,
-      userId
+    await prisma.$executeRawUnsafe(`
+      UPDATE "User"
+      SET "profilePhotoUrl" = $1, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = $2`, profilePhotoUrl, userId
     );
 
     const updatedUser = await getUserRowById(userId);
@@ -452,14 +413,11 @@ export async function changeUserPassword(req: Request, res: Response, next: Next
       return res.status(400).json({ error: 'Current password is incorrect' });
     }
 
-    await prisma.$executeRawUnsafe(
-      `
-        UPDATE "User"
-        SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
-      `,
-      hashPassword(newPassword),
-      userId
+    await prisma.$executeRawUnsafe(`
+      UPDATE "User"
+      SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE "id" = $2`, 
+      hashPassword(newPassword), userId
     );
 
     res.json({ success: true });
