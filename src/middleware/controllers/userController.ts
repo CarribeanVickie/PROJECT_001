@@ -41,8 +41,24 @@ function normalizeVisibility(value: unknown) {
 
 async function getUserRowById(userId: string) {
   const rows = await prisma.$queryRawUnsafe<UserRow[]>(
-    'SELECT id, teamId, name, email, phoneNumber, profilePhotoUrl, identityVisibility, passwordHash, role, createdAt, updatedAt FROM "User" WHERE id = ? LIMIT 1',
-    userId,
+    `
+      SELECT 
+        id,
+        team_id AS "teamId",
+        name,
+        email,
+        phone_number AS "phoneNumber",
+        profile_photo_url AS "profilePhotoUrl",
+        identity_visibility AS "identityVisibility",
+        password_hash AS "passwordHash",
+        role,
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM "User"
+      WHERE id = $1
+      LIMIT 1
+    `,
+    userId
   );
 
   return rows[0] || null;
@@ -50,7 +66,23 @@ async function getUserRowById(userId: string) {
 
 async function getUserRowByEmail(email: string) {
   const rows = await prisma.$queryRawUnsafe<UserRow[]>(
-    'SELECT id, teamId, name, email, phoneNumber, profilePhotoUrl, identityVisibility, passwordHash, role, createdAt, updatedAt FROM "User" WHERE email = ? LIMIT 1',
+    `
+      SELECT 
+        id,
+        team_id AS "teamId",
+        name,
+        email,
+        phone_number AS "phoneNumber",
+        profile_photo_url AS "profilePhotoUrl",
+        identity_visibility AS "identityVisibility",
+        password_hash AS "passwordHash",
+        role,
+        created_at AS "createdAt",
+        updated_at AS "updatedAt"
+      FROM "User"
+      WHERE email = $1
+      LIMIT 1
+    `,
     email,
   );
 
@@ -152,16 +184,16 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     await prisma.$executeRawUnsafe(
       `
         INSERT INTO "User"
-          (id, teamId, name, email, phoneNumber, profilePhotoUrl, identityVisibility, passwordHash, role, createdAt, updatedAt)
+          (id, team_id, name, email, phone_number, profile_photo_url, identity_visibility, password_hash, role, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       userId,
       teamId,
       String(name).trim(),
       String(email).trim().toLowerCase(),
-      null,            // phoneNumber
-      null,            // profilePhotoUrl
-      'NAME',          // identityVisibility
+      null,
+      null,
+      'NAME',
       hashPassword(String(password)),
       DEFAULT_USER_ROLE
     );
@@ -193,16 +225,16 @@ export async function createManagedUser(req: Request, res: Response, next: NextF
     await prisma.$executeRawUnsafe(
       `
         INSERT INTO "User"
-          (id, teamId, name, email, phoneNumber, profilePhotoUrl, identityVisibility, passwordHash, role, createdAt, updatedAt)
+          (id, team_id, name, email, phone_number, profile_photo_url, identity_visibility, password_hash, role, created_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       userId,
       actor.teamId,
       name,
       createPlaceholderEmail(userId),
-      null,            // phoneNumber
-      null,            // profilePhotoUrl
-      'NAME',          // identityVisibility
+      null,
+      null,
+      'NAME',
       hashPassword(temporaryPassword),
       role
     );
@@ -236,7 +268,7 @@ export async function resetManagedUserPassword(req: Request, res: Response, next
     await prisma.$executeRawUnsafe(
       `
         UPDATE "User"
-        SET passwordHash = $1, updatedAt = CURRENT_TIMESTAMP
+        SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
       `,
       hashPassword(temporaryPassword),
@@ -303,8 +335,24 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
     }
 
     const users = await prisma.$queryRawUnsafe<UserRow[]>(
-      'SELECT id, teamId, name, email, phoneNumber, profilePhotoUrl, identityVisibility, passwordHash, role, createdAt, updatedAt FROM "User" WHERE teamId = ? ORDER BY name ASC',
-      teamId,
+      `
+        SELECT 
+          id,
+          team_id AS "teamId",
+          name,
+          email,
+          phone_number AS "phoneNumber",
+          profile_photo_url AS "profilePhotoUrl",
+          identity_visibility AS "identityVisibility",
+          password_hash AS "passwordHash",
+          role,
+          created_at AS "createdAt",
+          updated_at AS "updatedAt"
+        FROM "User"
+        WHERE team_id = $1
+        ORDER BY name ASC
+      `,
+      teamId
     );
 
     res.json(await augmentUsersWithRoles(users));
@@ -333,7 +381,7 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
     await prisma.$executeRawUnsafe(
       `
         UPDATE "User"
-        SET role = $1, updatedAt = CURRENT_TIMESTAMP
+        SET role = $1, updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
       `,
       role,
@@ -371,7 +419,7 @@ export async function updateUserProfile(req: Request, res: Response, next: NextF
     await prisma.$executeRawUnsafe(
       `
         UPDATE "User"
-        SET email = $1, phoneNumber = $2, profilePhotoUrl = $3, identityVisibility = $4, updatedAt = CURRENT_TIMESTAMP
+        SET email = $1, phone_number = $2, profile_photo_url = $3, identity_visibility = $4, updated_at = CURRENT_TIMESTAMP
         WHERE id = $5
       `,
       nextEmail,
@@ -403,7 +451,7 @@ export async function uploadUserProfilePhoto(req: Request, res: Response, next: 
     await prisma.$executeRawUnsafe(
       `
         UPDATE "User"
-        SET profilePhotoUrl = $1, updatedAt = CURRENT_TIMESTAMP
+        SET profile_photo_url = $1, updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
       `,
       profilePhotoUrl,
@@ -444,7 +492,7 @@ export async function changeUserPassword(req: Request, res: Response, next: Next
     await prisma.$executeRawUnsafe(
       `
         UPDATE "User"
-        SET passwordHash = $1, updatedAt = CURRENT_TIMESTAMP
+        SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
         WHERE id = $2
       `,
       hashPassword(newPassword),
