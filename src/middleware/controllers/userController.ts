@@ -42,50 +42,28 @@ function normalizeVisibility(value: unknown) {
 async function getUserRowById(userId: string) {
   const rows = await prisma.$queryRawUnsafe<UserRow[]>(
     `
-      SELECT 
-        id,
-        team_id AS "teamId",
-        name,
-        email,
-        phone_number AS "phoneNumber",
-        profile_photo_url AS "profilePhotoUrl",
-        identity_visibility AS "identityVisibility",
-        password_hash AS "passwordHash",
-        role,
-        created_at AS "createdAt",
-        updated_at AS "updatedAt"
-      FROM "User"
-      WHERE id = $1
-      LIMIT 1
+    SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
+           "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
+    FROM "User"
+    WHERE "id" = $1
+    LIMIT 1
     `,
     userId
   );
-
   return rows[0] || null;
 }
 
 async function getUserRowByEmail(email: string) {
   const rows = await prisma.$queryRawUnsafe<UserRow[]>(
     `
-      SELECT 
-        id,
-        team_id AS "teamId",
-        name,
-        email,
-        phone_number AS "phoneNumber",
-        profile_photo_url AS "profilePhotoUrl",
-        identity_visibility AS "identityVisibility",
-        password_hash AS "passwordHash",
-        role,
-        created_at AS "createdAt",
-        updated_at AS "updatedAt"
-      FROM "User"
-      WHERE email = $1
-      LIMIT 1
+    SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
+           "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
+    FROM "User"
+    WHERE "email" = $1
+    LIMIT 1
     `,
-    email,
+    email
   );
-
   return rows[0] || null;
 }
 
@@ -174,17 +152,15 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     await prisma.team.upsert({
       where: { id: teamId },
       update: {},
-      create: {
-        id: teamId,
-        name: teamName || 'Default Team',
-      },
+      create: { id: teamId, name: teamName || 'Default Team' },
     });
 
     const userId = randomUUID();
     await prisma.$executeRawUnsafe(
       `
-      INSERT INTO "User"
-        (id, "teamId", name, email, "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", role, "createdAt", "updatedAt")
+      INSERT INTO "User" 
+        ("id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl", 
+         "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt")
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       userId,
@@ -269,16 +245,13 @@ export async function resetManagedUserPassword(req: Request, res: Response, next
       `
       UPDATE "User"
       SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE id = $2
+      WHERE "id" = $2
       `,
       hashPassword(temporaryPassword),
       userId
     );
 
-    res.json({
-      userId,
-      temporaryPassword,
-    });
+    res.json({ userId, temporaryPassword });
   } catch (err) {
     next(err);
   }
@@ -336,21 +309,11 @@ export async function listUsers(req: Request, res: Response, next: NextFunction)
 
     const users = await prisma.$queryRawUnsafe<UserRow[]>(
       `
-        SELECT 
-          id,
-          team_id AS "teamId",
-          name,
-          email,
-          phone_number AS "phoneNumber",
-          profile_photo_url AS "profilePhotoUrl",
-          identity_visibility AS "identityVisibility",
-          password_hash AS "passwordHash",
-          role,
-          created_at AS "createdAt",
-          updated_at AS "updatedAt"
-        FROM "User"
-        WHERE team_id = $1
-        ORDER BY name ASC
+      SELECT "id", "teamId", "name", "email", "phoneNumber", "profilePhotoUrl",
+             "identityVisibility", "passwordHash", "role", "createdAt", "updatedAt"
+      FROM "User"
+      WHERE "teamId" = $1
+      ORDER BY "name" ASC
       `,
       teamId
     );
