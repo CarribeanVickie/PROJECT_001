@@ -1,40 +1,48 @@
+# -------- Build Stage --------
 FROM node:lts-slim AS build
 WORKDIR /app
 
+# Install dependencies for build
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
+# Copy package.json and install
 COPY package*.json ./
 RUN npm ci
 
+# Copy Prisma schema and generate client
 COPY prisma ./prisma
 RUN npx prisma generate
 
+# Copy source files
 COPY tsconfig.json ./
 COPY src ./src
 COPY dbsetup.js ./
-COPY .env.example ./.env
 
+# Build TypeScript
 RUN npm run build
 
+# -------- Production Stage --------
 FROM node:lts-slim
 WORKDIR /app
 
-ENV NODE_ENV=production
-# DO NOT hardcode PORT, use the one from Render
-ENV PORT=$PORT
-
+# Install runtime dependencies
 RUN apt-get update -y && apt-get install -y openssl && rm -rf /var/lib/apt/lists/*
 
 COPY package*.json ./
-RUN npm ci
+RUN npm ci --omit=dev
 
-COPY --from=build /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=build /app/node_modules/@prisma ./node_modules/@prisma
+# Copy everything from build
+COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/prisma ./prisma
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/dbsetup.js ./dbsetup.js
 
-EXPOSE 8080
+# Expose the port that Render will provide
+ENV PORT=$PORT
+EXPOSE $PORT
 
-# Run dbsetup first, then start server
-CMD ["sh", "-c", "node dbsetup.js && node dist/middleware/server.js"]
+# Use a shell script to safely run dbsetup then start server
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
+
+CMD ["./start.sh"]
