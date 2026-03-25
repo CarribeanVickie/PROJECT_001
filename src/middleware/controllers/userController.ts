@@ -183,9 +183,9 @@ export async function createUser(req: Request, res: Response, next: NextFunction
     const userId = randomUUID();
     await prisma.$executeRawUnsafe(
       `
-        INSERT INTO "User"
-          (id, team_id, name, email, phone_number, profile_photo_url, identity_visibility, password_hash, role, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO "User"
+        (id, "teamId", name, email, "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", role, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       userId,
       teamId,
@@ -224,9 +224,9 @@ export async function createManagedUser(req: Request, res: Response, next: NextF
 
     await prisma.$executeRawUnsafe(
       `
-        INSERT INTO "User"
-          (id, team_id, name, email, phone_number, profile_photo_url, identity_visibility, password_hash, role, created_at, updated_at)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+      INSERT INTO "User"
+        (id, "teamId", name, email, "phoneNumber", "profilePhotoUrl", "identityVisibility", "passwordHash", role, "createdAt", "updatedAt")
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       userId,
       actor.teamId,
@@ -267,9 +267,9 @@ export async function resetManagedUserPassword(req: Request, res: Response, next
 
     await prisma.$executeRawUnsafe(
       `
-        UPDATE "User"
-        SET password_hash = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
+      UPDATE "User"
+      SET "passwordHash" = $1, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $2
       `,
       hashPassword(temporaryPassword),
       userId
@@ -380,9 +380,9 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
 
     await prisma.$executeRawUnsafe(
       `
-        UPDATE "User"
-        SET role = $1, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $2
+      UPDATE "User"
+      SET role = $1, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $2
       `,
       role,
       userId
@@ -418,9 +418,9 @@ export async function updateUserProfile(req: Request, res: Response, next: NextF
 
     await prisma.$executeRawUnsafe(
       `
-        UPDATE "User"
-        SET email = $1, phone_number = $2, profile_photo_url = $3, identity_visibility = $4, updated_at = CURRENT_TIMESTAMP
-        WHERE id = $5
+      UPDATE "User"
+      SET email = $1, "phoneNumber" = $2, "profilePhotoUrl" = $3, "identityVisibility" = $4, "updatedAt" = CURRENT_TIMESTAMP
+      WHERE id = $5
       `,
       nextEmail,
       phoneNumber ?? null,
