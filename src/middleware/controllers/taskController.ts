@@ -129,8 +129,9 @@ export async function createTask(req: Request, res: Response, next: NextFunction
     const taskId = randomUUID();
     await prisma.$executeRawUnsafe(
       `
-        INSERT INTO "Task" (id, teamId, title, description, type, priority, assigneeId, status, dueAt, serviceDate, createdAt, updatedAt)
-        VALUES (?, ?, ?, ?, ?, ?, ?, 'assigned', ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+        INSERT INTO "Task"
+        (id, teamId, title, description, type, priority, assigneeId, status, dueAt, serviceDate, createdAt, updatedAt)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, 'assigned', $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
       `,
       taskId,
       teamId,
@@ -204,16 +205,16 @@ export async function updateTask(req: Request, res: Response, next: NextFunction
       `
         UPDATE "Task"
         SET
-          title = COALESCE(?, title),
-          description = CASE WHEN ? = 1 THEN ? ELSE description END,
-          type = COALESCE(?, type),
-          priority = COALESCE(?, priority),
-          assigneeId = CASE WHEN ? = 1 THEN ? ELSE assigneeId END,
-          status = COALESCE(?, status),
-          dueAt = CASE WHEN ? = 1 THEN ? ELSE dueAt END,
-          serviceDate = CASE WHEN ? = 1 THEN ? ELSE serviceDate END,
+          title = COALESCE($1, title),
+          description = CASE WHEN $2 = 1 THEN $3 ELSE description END,
+          type = COALESCE($4, type),
+          priority = COALESCE($5, priority),
+          assigneeId = CASE WHEN $6 = 1 THEN $7 ELSE assigneeId END,
+          status = COALESCE($8, status),
+          dueAt = CASE WHEN $9 = 1 THEN $10 ELSE dueAt END,
+          serviceDate = CASE WHEN $11 = 1 THEN $12 ELSE serviceDate END,
           updatedAt = CURRENT_TIMESTAMP
-        WHERE id = ?
+        WHERE id = $13
       `,
       nextTitle ?? null,
       validated.description !== undefined ? 1 : 0,
