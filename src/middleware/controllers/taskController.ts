@@ -252,14 +252,19 @@ export async function updateTask(req: Request, res: Response, next: NextFunction
 export async function deleteTask(req: Request, res: Response, next: NextFunction) {
   try {
     await ensureLeadership(req);
+
     const taskId = normalizeParam(req.params.taskId);
     if (!taskId) {
       return res.status(400).json({ error: 'taskId is required' });
     }
 
-    await prisma.task.delete({ where: { id: taskId } });
+    const task = await prisma.task.findUnique({ where: { id: taskId } });
+    if (!task) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
 
-    res.status(204).send();
+    await prisma.task.delete({ where: { id: taskId } });
+    res.status(204).send(); // success, no content
   } catch (err) {
     next(err);
   }
