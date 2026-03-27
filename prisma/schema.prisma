@@ -191,3 +191,13 @@ model AccessLog {
   status     String         @default("allowed")
   createdAt  DateTime       @default(now())
 }
+
+
+model TeamPermission {
+  team               Team   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  teamId             String @id
+  adminCanAllocateRoles   Boolean @default(false)
+  adminCanAllocateMembers Boolean @default(false)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+}
