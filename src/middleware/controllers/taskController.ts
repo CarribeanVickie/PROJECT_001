@@ -249,6 +249,62 @@ export async function updateTask(req: Request, res: Response, next: NextFunction
   }
 }
 
+export async function editTask(req: Request, res: Response, next: NextFunction) {
+  try {
+    const taskId = normalizeParam(req.params.taskId);
+    if (!taskId) {
+      return res.status(400).json({ error: 'taskId is required' });
+    }
+
+    const validated = updateTaskSchema.parse(req.body);
+    const actor = await ensureLeadership(req); // Only admin or superadmin
+
+    const currentTask = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        type: true,
+        priority: true,
+        assigneeId: true,
+        status: true,
+        dueAt: true,
+        serviceDate: true,
+      },
+    });
+
+    if (!currentTask) {
+      return res.status(404).json({ error: 'Task not found' });
+    }
+
+    // Ensure new assignee is assignable
+    if (validated.assigneeId) {
+      await ensureAssignableAssignee(validated.assigneeId);
+    }
+
+    // Update task safely
+    const updatedTask = await prisma.task.update({
+      where: { id: taskId },
+      data: {
+        title: validated.title ?? currentTask.title,
+        description: validated.description !== undefined ? validated.description : currentTask.description,
+        type: validated.type ?? currentTask.type,
+        priority: validated.priority ?? undefined,
+        assigneeId: validated.assigneeId !== undefined ? validated.assigneeId : currentTask.assigneeId,
+        status: validated.status ?? currentTask.status,
+        dueAt: validated.dueAt !== undefined ? (validated.dueAt ? new Date(validated.dueAt) : null) : undefined,
+        serviceDate: validated.serviceDate !== undefined ? (validated.serviceDate ? new Date(validated.serviceDate) : null) : undefined,
+      },
+    });
+
+    const taskWithRelations = await getTaskWithRelations(taskId);
+    res.json(sanitizeTaskForResponse(taskWithRelations));
+  } catch (err) {
+    next(err);
+  }
+}
+
 export async function deleteTask(req: Request, res: Response, next: NextFunction) {
   try {
     await ensureLeadership(req);

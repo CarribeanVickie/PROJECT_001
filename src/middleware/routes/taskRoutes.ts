@@ -3,6 +3,7 @@ import {
   addTaskComment,
   createTask,
   deleteTask,
+  editTask,
   getTask,
   listTasks,
   updateTask,
@@ -14,6 +15,7 @@ router.get('/', listTasks);
 router.post('/', createTask);
 router.get('/:taskId', getTask);
 router.patch('/:taskId', updateTask);
+router.put('/:taskId', editTask);
 router.delete('/:taskId', deleteTask);
 router.post('/:taskId/comments', addTaskComment);
 
