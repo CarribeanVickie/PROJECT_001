@@ -114,42 +114,53 @@ export async function getTask(req: Request, res: Response, next: NextFunction) {
 
 export async function createTask(req: Request, res: Response, next: NextFunction) {
   try {
+    // Validate body
     const validated = createTaskSchema.parse(req.body);
+
+    // Only leadership can create non-repair tasks
     if (validated.type !== 'repair_report') {
       await ensureLeadership(req);
     }
-    const teamId = req.body.teamId as string;
 
+    const teamId = req.body.teamId;
     if (!teamId) {
       return res.status(400).json({ error: 'teamId is required' });
     }
 
+    // Validate assignee
     await ensureAssignableAssignee(validated.assigneeId);
 
-    const taskId = randomUUID();
-    await prisma.$executeRawUnsafe(
-      `
-        INSERT INTO "Task"
-        (id, teamId, title, description, type, priority, assigneeId, status, dueAt, serviceDate, createdAt, updatedAt)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 'assigned', $8, $9, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
-      `,
-      taskId,
-      teamId,
-      validated.title,
-      validated.description || null,
-      validated.type,
-      validated.priority,
-      validated.assigneeId || null,
-      validated.dueAt ? new Date(validated.dueAt).toISOString() : null,
-      validated.serviceDate ? new Date(validated.serviceDate).toISOString() : null,
-    );
+    // Create the task
+    const task = await prisma.task.create({
+      data: {
+        id: randomUUID(),
+        teamId: teamId,
+        title: validated.title,
+        description: validated.description || null,
+        type: validated.type,
+        priority: validated.priority,
+        assigneeId: validated.assigneeId || null,
+        status: 'assigned',
+        dueAt: validated.dueAt ? new Date(validated.dueAt) : null,
+        serviceDate: validated.serviceDate ? new Date(validated.serviceDate) : null,
+      },
+      include: {
+        assignee: true,
+        comments: {
+          include: { author: true },
+          orderBy: { createdAt: 'asc' },
+        },
+        attachments: true,
+      },
+    });
 
-    const task = await getTaskWithRelations(taskId);
     res.status(201).json(sanitizeTaskForResponse(task));
   } catch (err) {
     next(err);
   }
 }
+
+
 
 export async function updateTask(req: Request, res: Response, next: NextFunction) {
   try {
