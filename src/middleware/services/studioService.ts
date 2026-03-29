@@ -97,18 +97,28 @@ export function validateAdditionalRoles(primaryRole: string, additionalRoles: st
   return normalizedRoles;
 }
 
-export async function replaceUserAdditionalRoles(userId: string, primaryRole: string, additionalRoles: string[]) {
+export async function replaceUserAdditionalRoles(
+  userId: string,
+  primaryRole: string,
+  additionalRoles: string[]
+) {
   const validRoles = validateAdditionalRoles(primaryRole, additionalRoles);
 
-  await prisma.$executeRawUnsafe('DELETE FROM "UserAdditionalRole" WHERE userId = ?', userId);
+  // Delete existing
+  await prisma.userAdditionalRole.deleteMany({
+    where: { userId },
+  });
 
-  for (const role of validRoles) {
-    await prisma.$executeRawUnsafe(
-      'INSERT INTO "UserAdditionalRole" (id, userId, role, createdAt) VALUES (?, ?, ?, CURRENT_TIMESTAMP)',
-      randomUUID(),
-      userId,
-      role,
-    );
+  // Insert all new roles at once
+  if (validRoles.length > 0) {
+    await prisma.userAdditionalRole.createMany({
+      data: validRoles.map((role) => ({
+        id: randomUUID(),
+        userId,
+        role,
+        createdAt: new Date(),
+      })),
+    });
   }
 
   return validRoles;
