@@ -323,15 +323,13 @@ export async function updateUserRole(req: Request, res: Response, next: NextFunc
       return res.status(400).json({ error: 'Invalid role supplied' });
     }
 
-    await prisma.$executeRawUnsafe(
-      `
-      UPDATE "User"
-      SET role = $1, "updatedAt" = CURRENT_TIMESTAMP
-      WHERE id = $2
-      `,
-      role,
-      userId
-    );
+    await prisma.user.update({
+      where: { id: userId },
+      data: {
+        role,
+        updatedAt: new Date(),
+      },
+    });
 
     try {
       await replaceUserAdditionalRoles(userId, role, additionalRoles);
